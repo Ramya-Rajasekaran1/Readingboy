@@ -317,6 +317,7 @@ export default function App() {
                   }}
                   src="/untitled-design.mp4"
                   className="w-full h-full object-cover pointer-events-none"
+                  style={{ transform: 'translate3d(0,0,0)', willChange: 'transform' }}
                   muted
                   playsInline
                   loop
@@ -330,7 +331,7 @@ export default function App() {
       </motion.section>
 
       {/* SVG Mask Definition */}
-      <svg width="0" height="0" className="absolute pointer-events-none">
+      <svg style={{ position: 'absolute', width: '1px', height: '1px', opacity: 0, pointerEvents: 'none' }} className="pointer-events-none">
         <defs>
           {/* Gaussian Blur Filter for the mask edge */}
           <filter id="blob-blur">
