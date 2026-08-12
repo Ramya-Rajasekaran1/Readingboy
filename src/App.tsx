@@ -87,13 +87,19 @@ export default function App() {
       setSpeed();
     }
 
-    video.play().catch((err) => {
-      console.log("Autoplay play trigger failed:", err);
-    });
+    // Buffering-safe autoplay trigger
+    const startPlay = () => {
+      video.play().catch(() => {});
+    };
+    video.addEventListener('canplay', startPlay);
+    if (video.readyState >= 3) {
+      startPlay();
+    }
 
     return () => {
       video.removeEventListener('loadedmetadata', setSpeed);
       video.removeEventListener('play', setSpeed);
+      video.removeEventListener('canplay', startPlay);
     };
   }, [introFinished]);
 
@@ -111,7 +117,7 @@ export default function App() {
   const boyY = useTransform(smoothScrollY, [0, 800], [0, -120]);
   const boyOpacity = useTransform(smoothScrollY, [150, 650], [0, 1]);
 
-  // Mouse movement and touch interaction tracking
+  // Mouse, scroll, and touch interaction tracking
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -154,8 +160,8 @@ export default function App() {
       }
     };
 
-    // Mobile touch interaction to trigger autoplay in Low Power Mode
-    const handleTouchStart = () => {
+    // User interaction scroll/touch triggers to play the video (authorizes autoplay on modern browsers)
+    const handleInteraction = () => {
       const video = videoRef.current;
       if (video) {
         if (video.readyState >= 1) {
@@ -168,11 +174,15 @@ export default function App() {
     };
 
     window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('scroll', handleInteraction, { passive: true });
+    window.addEventListener('wheel', handleInteraction, { passive: true });
+    window.addEventListener('touchstart', handleInteraction, { passive: true });
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('scroll', handleInteraction);
+      window.removeEventListener('wheel', handleInteraction);
+      window.removeEventListener('touchstart', handleInteraction);
       if (mouseTimeoutRef.current) clearTimeout(mouseTimeoutRef.current);
     };
   }, [isMobile, mouseX, mouseY, videoParallaxX, videoParallaxY]);
@@ -273,8 +283,10 @@ export default function App() {
                       class="w-full h-full object-cover pointer-events-none"
                       muted
                       playsinline
+                      webkit-playsinline
                       loop
                       autoplay
+                      preload="auto"
                     ></video>
                   `
                 }}
