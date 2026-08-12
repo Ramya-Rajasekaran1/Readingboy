@@ -10,6 +10,7 @@ export default function App() {
   const mediaRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const mouseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isIntersectingRef = useRef(false);
 
   // Detect mobile/touch
   useEffect(() => {
@@ -110,19 +111,29 @@ export default function App() {
       setSpeed();
     }
 
-    // Buffering-safe autoplay trigger
-    const startPlay = () => {
-      video.play().catch(() => {});
-    };
-    video.addEventListener('canplay', startPlay);
-    if (video.readyState >= 3) {
-      startPlay();
-    }
+    // Intersection Observer to handle autoplay/pause when entering/leaving viewport
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          isIntersectingRef.current = entry.isIntersecting;
+          if (entry.isIntersecting) {
+            video.muted = true;
+            video.play()
+              .then(() => console.log("Video autoplayed via IntersectionObserver"))
+              .catch((err) => console.log("IntersectionObserver play blocked:", err));
+          } else {
+            video.pause();
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(video);
 
     return () => {
       video.removeEventListener('loadedmetadata', setSpeed);
       video.removeEventListener('play', setSpeed);
-      video.removeEventListener('canplay', startPlay);
+      observer.disconnect();
     };
   }, [introFinished]);
 
@@ -172,7 +183,7 @@ export default function App() {
 
         // Autoplay recovery (forces play if browser pauses it off-screen)
         const video = videoRef.current;
-        if (video) {
+        if (video && isIntersectingRef.current) {
           if (video.readyState >= 1) {
             video.playbackRate = 0.8;
           }
@@ -186,14 +197,14 @@ export default function App() {
     // User interaction scroll/touch triggers to play the video (authorizes autoplay on modern browsers)
     const handleInteraction = () => {
       const video = videoRef.current;
-      if (video) {
+      if (video && isIntersectingRef.current) {
         if (video.readyState >= 1) {
           video.playbackRate = 0.8;
         }
         if (video.paused) {
           video.play()
-            .then(() => console.log("Video played successfully via user scroll/touch interaction."))
-            .catch((err) => console.log("Video play failed via scroll/touch interaction:", err));
+            .then(() => console.log("Video played successfully via user interaction."))
+            .catch((err) => console.log("Video play failed via interaction:", err));
         }
       }
     };
@@ -204,6 +215,9 @@ export default function App() {
     window.addEventListener('touchstart', handleInteraction, { passive: true });
     window.addEventListener('pointerdown', handleInteraction);
     window.addEventListener('touchend', handleInteraction);
+    window.addEventListener('click', handleInteraction);
+    window.addEventListener('mousedown', handleInteraction);
+    window.addEventListener('keydown', handleInteraction);
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
@@ -212,6 +226,9 @@ export default function App() {
       window.removeEventListener('touchstart', handleInteraction);
       window.removeEventListener('pointerdown', handleInteraction);
       window.removeEventListener('touchend', handleInteraction);
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('mousedown', handleInteraction);
+      window.removeEventListener('keydown', handleInteraction);
       if (mouseTimeoutRef.current) clearTimeout(mouseTimeoutRef.current);
     };
   }, [isMobile, mouseX, mouseY, videoParallaxX, videoParallaxY]);
@@ -307,10 +324,11 @@ export default function App() {
                 <video
                   ref={(el) => {
                     if (el) {
-                      el.muted = true;
-                      el.defaultMuted = true;
+                      el.setAttribute('muted', '');
                       el.setAttribute('playsinline', '');
                       el.setAttribute('webkit-playsinline', '');
+                      el.muted = true;
+                      el.defaultMuted = true;
                       // @ts-ignore
                       videoRef.current = el;
                     }
@@ -321,7 +339,6 @@ export default function App() {
                   muted
                   playsInline
                   loop
-                  autoPlay
                   preload="auto"
                 />
               </div>
