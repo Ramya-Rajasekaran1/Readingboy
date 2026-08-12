@@ -4,7 +4,6 @@ import { DemoOne } from '@/components/ui/demo';
 
 export default function App() {
   const [isMobile, setIsMobile] = useState(false);
-  const [isMouseActive, setIsMouseActive] = useState(false);
   const [introFinished, setIntroFinished] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -31,13 +30,6 @@ export default function App() {
     }, 1200); // 1.2s reveal fade
     return () => clearTimeout(timer);
   }, []);
-
-  // Force play/visible state on mobile/touch since there are no hover events
-  useEffect(() => {
-    if (isMobile) {
-      setIsMouseActive(true);
-    }
-  }, [isMobile]);
 
 
 
@@ -160,13 +152,6 @@ export default function App() {
           }
         }
       }
-
-      // Handle activity state (reveals spotlight on mouse movement)
-      setIsMouseActive(true);
-      if (mouseTimeoutRef.current) clearTimeout(mouseTimeoutRef.current);
-      mouseTimeoutRef.current = setTimeout(() => {
-        setIsMouseActive(false);
-      }, 2000); // Fades back to dim after 2 seconds of stillness
     };
 
     // Mobile touch interaction to trigger autoplay in Low Power Mode
@@ -240,13 +225,12 @@ export default function App() {
       {/* SECTION 2: CINEMATIC SHOWCASE (Centered Boy Canvas - Shifted Up) */}
       <motion.section 
         style={{ y: boyY, opacity: boyOpacity }}
-        className="relative w-full h-screen flex flex-col justify-center items-center overflow-hidden z-10 -mt-16"
+        className="relative w-full h-[88vh] flex flex-col justify-center items-center overflow-hidden z-10 -mt-16"
       >
         <div
           ref={mediaRef}
           onMouseLeave={() => {
             if (!isMobile) {
-              setIsMouseActive(false);
               if (mouseTimeoutRef.current) clearTimeout(mouseTimeoutRef.current);
               if (mediaRef.current) {
                 const rect = mediaRef.current.getBoundingClientRect();
@@ -312,18 +296,13 @@ export default function App() {
             {/* White color inside the mask means visible, blurred path */}
             <motion.path
               animate={{ 
-                d: blobVariants,
-                scale: isMouseActive ? 1 : 0
+                d: blobVariants
               }}
               transition={{
                 d: {
                   repeat: Infinity,
                   repeatType: "mirror",
                   duration: 6,
-                  ease: "easeInOut"
-                },
-                scale: {
-                  duration: 0.5,
                   ease: "easeInOut"
                 }
               }}
@@ -332,8 +311,6 @@ export default function App() {
               style={{
                 x: maskXSpring,
                 y: maskYSpring,
-                originX: 0,
-                originY: 0,
               }}
             />
           </mask>
