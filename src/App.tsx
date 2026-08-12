@@ -103,9 +103,12 @@ export default function App() {
     // Set playback speed safely when metadata is ready (safeguards Safari freeze bug)
     const setSpeed = () => {
       video.playbackRate = 0.8;
-      console.log("Playback speed successfully configured to 0.8");
     };
+    video.addEventListener('loadedmetadata', setSpeed);
     video.addEventListener('play', setSpeed);
+    if (video.readyState >= 1) {
+      setSpeed();
+    }
 
     // Buffering-safe autoplay trigger
     const startPlay = () => {
@@ -117,6 +120,7 @@ export default function App() {
     }
 
     return () => {
+      video.removeEventListener('loadedmetadata', setSpeed);
       video.removeEventListener('play', setSpeed);
       video.removeEventListener('canplay', startPlay);
     };
@@ -291,7 +295,13 @@ export default function App() {
             >
               {/* Masked Wrapper for Video */}
               <div 
-                style={{ opacity: 1 }}
+                style={{ 
+                  opacity: 1, // Keep opacity 1 so the browser loops the video continuously in the background
+                  WebkitMaskImage: 'url(#blob-mask)',
+                  maskImage: 'url(#blob-mask)',
+                  WebkitMask: 'url(#blob-mask)',
+                  mask: 'url(#blob-mask)',
+                }}
                 className="absolute inset-0 w-full h-full pointer-events-none"
               >
                 <video
@@ -307,17 +317,9 @@ export default function App() {
                   }}
                   src="/untitled-design.mp4"
                   className="w-full h-full object-cover pointer-events-none"
-                  style={{ 
-                    WebkitMaskImage: 'url(#blob-mask)',
-                    maskImage: 'url(#blob-mask)',
-                    WebkitMask: 'url(#blob-mask)',
-                    mask: 'url(#blob-mask)',
-                    transform: 'translate3d(0,0,0)', 
-                    willChange: 'transform' 
-                  }}
+                  style={{ transform: 'translate3d(0,0,0)', willChange: 'transform' }}
                   muted
                   playsInline
-                  {...{ "webkit-playsinline": "true" }}
                   loop
                   autoPlay
                   preload="auto"
@@ -329,7 +331,7 @@ export default function App() {
       </motion.section>
 
       {/* SVG Mask Definition */}
-      <svg style={{ position: 'absolute', width: '4px', height: '4px', opacity: 0, pointerEvents: 'none' }} className="pointer-events-none">
+      <svg style={{ position: 'absolute', width: '1px', height: '1px', opacity: 0, pointerEvents: 'none' }} className="pointer-events-none">
         <defs>
           {/* Gaussian Blur Filter for the mask edge */}
           <filter id="blob-blur">
