@@ -45,9 +45,21 @@ export default function App() {
   const videoParallaxXSpring = useSpring(videoParallaxX, { stiffness: 80, damping: 20 });
   const videoParallaxYSpring = useSpring(videoParallaxY, { stiffness: 80, damping: 20 });
 
+  // Synchronous calculation of the media card center (bypasses unpainted DOM clientRect issues)
+  const getCardCenter = () => {
+    if (typeof window === 'undefined') return { x: 0, y: 0 };
+    const h = window.innerHeight * 0.88;
+    let w = h * (3293 / 5028);
+    const maxW = window.innerWidth * 0.95;
+    if (w > maxW) w = maxW;
+    return { x: w / 2, y: h / 2 };
+  };
+
+  const initialCenter = getCardCenter();
+
   // Coordinates for the organic morphing SVG blob mask
-  const maskX = useMotionValue(0);
-  const maskY = useMotionValue(0);
+  const maskX = useMotionValue(initialCenter.x);
+  const maskY = useMotionValue(initialCenter.y);
   const maskXSpring = useSpring(maskX, { stiffness: 120, damping: 18 });
   const maskYSpring = useSpring(maskY, { stiffness: 120, damping: 18 });
 
@@ -58,6 +70,17 @@ export default function App() {
     "M -150,0 C -140,-120 -80,-170 30,-150 C 140,-130 180,-60 170,40 C 150,140 90,180 -40,170 C -180,150 -170,120 -150,0 Z",
     "M -200,-20 C -180,-140 -100,-170 0,-200 C 100,-230 180,-100 180,20 C 180,140 120,200 20,180 C -90,160 -220,100 -200,-20 Z"
   ];
+
+  // Synchronous window resizing center updater
+  useEffect(() => {
+    const handleResize = () => {
+      const center = getCardCenter();
+      maskX.set(center.x);
+      maskY.set(center.y);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Query video and configure playback rate on mount/load
   useEffect(() => {
@@ -73,9 +96,9 @@ export default function App() {
     video.loop = true;
 
     // Set initial mask coordinates to the center of the card
-    const rect = container.getBoundingClientRect();
-    maskX.set(rect.width / 2);
-    maskY.set(rect.height / 2);
+    const center = getCardCenter();
+    maskX.set(center.x);
+    maskY.set(center.y);
 
     // Set playback speed safely when metadata is ready (safeguards Safari freeze bug)
     const setSpeed = () => {
@@ -168,7 +191,9 @@ export default function App() {
           video.playbackRate = 0.8;
         }
         if (video.paused) {
-          video.play().catch(() => {});
+          video.play()
+            .then(() => console.log("Video played successfully via user scroll/touch interaction."))
+            .catch((err) => console.log("Video play failed via scroll/touch interaction:", err));
         }
       }
     };
@@ -242,11 +267,9 @@ export default function App() {
           onMouseLeave={() => {
             if (!isMobile) {
               if (mouseTimeoutRef.current) clearTimeout(mouseTimeoutRef.current);
-              if (mediaRef.current) {
-                const rect = mediaRef.current.getBoundingClientRect();
-                maskX.set(rect.width / 2);
-                maskY.set(rect.height / 2);
-              }
+              const center = getCardCenter();
+              maskX.set(center.x);
+              maskY.set(center.y);
             }
           }}
           className="relative h-[88vh] aspect-[3293/5028] max-w-[95vw] select-none"
