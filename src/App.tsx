@@ -202,12 +202,16 @@ export default function App() {
     window.addEventListener('scroll', handleInteraction, { passive: true });
     window.addEventListener('wheel', handleInteraction, { passive: true });
     window.addEventListener('touchstart', handleInteraction, { passive: true });
+    window.addEventListener('pointerdown', handleInteraction);
+    window.addEventListener('touchend', handleInteraction);
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('scroll', handleInteraction);
       window.removeEventListener('wheel', handleInteraction);
       window.removeEventListener('touchstart', handleInteraction);
+      window.removeEventListener('pointerdown', handleInteraction);
+      window.removeEventListener('touchend', handleInteraction);
       if (mouseTimeoutRef.current) clearTimeout(mouseTimeoutRef.current);
     };
   }, [isMobile, mouseX, mouseY, videoParallaxX, videoParallaxY]);
@@ -289,7 +293,7 @@ export default function App() {
               }}
               className="w-full h-full relative"
             >
-              {/* Masked Wrapper for Video (dangerouslySetInnerHTML bypasses React muted compilation bugs) */}
+              {/* Masked Wrapper for Video */}
               <div 
                 style={{ 
                   opacity: 1, // Keep opacity 1 so the browser loops the video continuously in the background
@@ -299,21 +303,27 @@ export default function App() {
                   mask: 'url(#blob-mask)',
                 }}
                 className="absolute inset-0 w-full h-full pointer-events-none"
-                dangerouslySetInnerHTML={{
-                  __html: `
-                    <video
-                      src="/untitled-design.mp4"
-                      class="w-full h-full object-cover pointer-events-none"
-                      muted
-                      playsinline
-                      webkit-playsinline
-                      loop
-                      autoplay
-                      preload="auto"
-                    ></video>
-                  `
-                }}
-              />
+              >
+                <video
+                  ref={(el) => {
+                    if (el) {
+                      el.muted = true;
+                      el.defaultMuted = true;
+                      el.setAttribute('playsinline', '');
+                      el.setAttribute('webkit-playsinline', '');
+                      // @ts-ignore
+                      videoRef.current = el;
+                    }
+                  }}
+                  src="/untitled-design.mp4"
+                  className="w-full h-full object-cover pointer-events-none"
+                  muted
+                  playsInline
+                  loop
+                  autoPlay
+                  preload="auto"
+                />
+              </div>
             </motion.div>
           </motion.div>
         </div>
