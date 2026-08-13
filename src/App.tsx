@@ -9,6 +9,7 @@ export default function App() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mediaRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const maskPathRef = useRef<SVGPathElement>(null);
   const mouseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isIntersectingRef = useRef(false);
 
@@ -63,10 +64,29 @@ export default function App() {
   const maskY = useMotionValue(initialCenter.y);
   const maskXSpring = useSpring(maskX, { stiffness: 120, damping: 18 });
   const maskYSpring = useSpring(maskY, { stiffness: 120, damping: 18 });
-  const maskTransform = useTransform(
-    [maskXSpring, maskYSpring],
-    ([x, y]) => `translate(${x}, ${y})`
-  );
+
+  useEffect(() => {
+    const pathEl = maskPathRef.current;
+    if (!pathEl) return;
+
+    const updateTransform = () => {
+      pathEl.setAttribute(
+        "transform",
+        `translate(${maskXSpring.get()}, ${maskYSpring.get()})`
+      );
+    };
+
+    updateTransform();
+
+    const unsubX = maskXSpring.on("change", updateTransform);
+    const unsubY = maskYSpring.on("change", updateTransform);
+
+    return () => {
+      unsubX();
+      unsubY();
+    };
+  }, [maskXSpring, maskYSpring]);
+
 
   // Blob SVG morphing variants (centered at 0, 0 - larger size)
   const blobVariants = [
@@ -244,28 +264,7 @@ export default function App() {
         isMobile ? '' : 'custom-cursor-active'
       }`}
     >
-      {/* Floating Back Button */}
-      <a
-        href="https://ramyarajasekaran.netlify.app/explorations/"
-        className="absolute top-[40px] left-[40px] z-[999] inline-flex items-center gap-2 text-xs font-bold font-sans uppercase tracking-widest text-white hover:text-orange-400 transition-all duration-300 bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/10 rounded-full px-4 py-2 shadow-lg cursor-pointer decoration-none"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="w-3.5 h-3.5"
-        >
-          <path d="m12 19-7-7 7-7" />
-          <path d="M19 12H5" />
-        </svg>
-        Back to explorations
-      </a>
+
 
       {/* Cinematic Film Grain Overlay */}
       <div className="noise-overlay" />
@@ -385,6 +384,7 @@ export default function App() {
           <mask id="blob-mask" maskUnits="userSpaceOnUse">
             {/* White color inside the mask means visible, blurred path */}
             <motion.path
+              ref={maskPathRef}
               animate={{ 
                 d: blobVariants
               }}
@@ -398,7 +398,6 @@ export default function App() {
               }}
               fill="white"
               filter="url(#blob-blur)"
-              transform={maskTransform}
             />
           </mask>
         </defs>
