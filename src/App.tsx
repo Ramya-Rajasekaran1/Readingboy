@@ -63,6 +63,10 @@ export default function App() {
   const maskY = useMotionValue(initialCenter.y);
   const maskXSpring = useSpring(maskX, { stiffness: 120, damping: 18 });
   const maskYSpring = useSpring(maskY, { stiffness: 120, damping: 18 });
+  const maskTransform = useTransform(
+    [maskXSpring, maskYSpring],
+    ([x, y]) => `translate(${x}, ${y})`
+  );
 
   // Blob SVG morphing variants (centered at 0, 0 - larger size)
   const blobVariants = [
@@ -371,7 +375,7 @@ export default function App() {
       </motion.section>
 
       {/* SVG Mask Definition */}
-      <svg style={{ position: 'absolute', width: '1px', height: '1px', opacity: 0, pointerEvents: 'none' }} className="pointer-events-none">
+      <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }} className="pointer-events-none">
         <defs>
           {/* Gaussian Blur Filter for the mask edge */}
           <filter id="blob-blur">
@@ -394,10 +398,7 @@ export default function App() {
               }}
               fill="white"
               filter="url(#blob-blur)"
-              style={{
-                x: maskXSpring,
-                y: maskYSpring,
-              }}
+              transform={maskTransform}
             />
           </mask>
         </defs>
