@@ -9,7 +9,7 @@ export default function App() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mediaRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const maskPathRef = useRef<SVGPathElement>(null);
+  const maskContainerRef = useRef<HTMLDivElement>(null);
   const mouseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isIntersectingRef = useRef(false);
 
@@ -66,35 +66,29 @@ export default function App() {
   const maskYSpring = useSpring(maskY, { stiffness: 120, damping: 18 });
 
   useEffect(() => {
-    const pathEl = maskPathRef.current;
-    if (!pathEl) return;
+    const el = maskContainerRef.current;
+    if (!el) return;
 
-    const updateTransform = () => {
-      pathEl.setAttribute(
-        "transform",
-        `translate(${maskXSpring.get()}, ${maskYSpring.get()})`
-      );
+    const updateMask = () => {
+      const x = Math.round(maskXSpring.get());
+      const y = Math.round(maskYSpring.get());
+      const grad = `radial-gradient(circle 200px at ${x}px ${y}px, black 40%, transparent 100%)`;
+      el.style.maskImage = grad;
+      el.style.webkitMaskImage = grad;
+      el.style.setProperty("--mouse-x", `${x}px`);
+      el.style.setProperty("--mouse-y", `${y}px`);
     };
 
-    updateTransform();
+    updateMask();
 
-    const unsubX = maskXSpring.on("change", updateTransform);
-    const unsubY = maskYSpring.on("change", updateTransform);
+    const unsubX = maskXSpring.on("change", updateMask);
+    const unsubY = maskYSpring.on("change", updateMask);
 
     return () => {
       unsubX();
       unsubY();
     };
   }, [maskXSpring, maskYSpring]);
-
-
-  // Blob SVG morphing variants (centered at 0, 0 - larger size)
-  const blobVariants = [
-    "M -160,-30 C -150,-130 -90,-180 10,-160 C 120,-140 190,-70 180,30 C 160,130 100,190 -10,180 C -120,160 -180,70 -160,-30 Z",
-    "M -180,20 C -170,-100 -60,-200 40,-180 C 150,-160 160,-40 190,60 C 220,160 80,180 -30,200 C -140,220 -200,140 -180,20 Z",
-    "M -150,0 C -140,-120 -80,-170 30,-150 C 140,-130 180,-60 170,40 C 150,140 90,180 -40,170 C -180,150 -170,120 -150,0 Z",
-    "M -200,-20 C -180,-140 -100,-170 0,-200 C 100,-230 180,-100 180,20 C 180,140 120,200 20,180 C -90,160 -220,100 -200,-20 Z"
-  ];
 
   // Synchronous window resizing center updater
   useEffect(() => {
@@ -338,12 +332,11 @@ export default function App() {
             >
               {/* Masked Wrapper for Video */}
               <div 
+                ref={maskContainerRef}
                 style={{ 
-                  opacity: 1, // Keep opacity 1 so the browser loops the video continuously in the background
-                  WebkitMaskImage: 'url(#blob-mask)',
-                  maskImage: 'url(#blob-mask)',
-                  WebkitMask: 'url(#blob-mask)',
-                  mask: 'url(#blob-mask)',
+                  opacity: 1,
+                  maskImage: `radial-gradient(circle 200px at var(--mouse-x, ${Math.round(initialCenter.x)}px) var(--mouse-y, ${Math.round(initialCenter.y)}px), black 40%, transparent 100%)`,
+                  WebkitMaskImage: `radial-gradient(circle 200px at var(--mouse-x, ${Math.round(initialCenter.x)}px) var(--mouse-y, ${Math.round(initialCenter.y)}px), black 40%, transparent 100%)`,
                 }}
                 className="absolute inset-0 w-full h-full pointer-events-none"
               >
@@ -373,35 +366,7 @@ export default function App() {
         </div>
       </motion.section>
 
-      {/* SVG Mask Definition */}
-      <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }} className="pointer-events-none">
-        <defs>
-          {/* Gaussian Blur Filter for the mask edge */}
-          <filter id="blob-blur">
-            <feGaussianBlur stdDeviation="25" />
-          </filter>
-          
-          <mask id="blob-mask" maskUnits="userSpaceOnUse">
-            {/* White color inside the mask means visible, blurred path */}
-            <motion.path
-              ref={maskPathRef}
-              animate={{ 
-                d: blobVariants
-              }}
-              transition={{
-                d: {
-                  repeat: Infinity,
-                  repeatType: "mirror",
-                  duration: 6,
-                  ease: "easeInOut"
-                }
-              }}
-              fill="white"
-              filter="url(#blob-blur)"
-            />
-          </mask>
-        </defs>
-      </svg>
+{/* CSS radial-gradient mask active */}
     </div>
   );
 }
