@@ -5,6 +5,7 @@ import { DemoOne } from '@/components/ui/demo';
 export default function App() {
   const [isMobile, setIsMobile] = useState(false);
   const [introFinished, setIntroFinished] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const mediaRef = useRef<HTMLDivElement>(null);
@@ -72,7 +73,7 @@ export default function App() {
     const updateMask = () => {
       const x = Math.round(maskXSpring.get());
       const y = Math.round(maskYSpring.get());
-      const grad = `radial-gradient(circle 240px at ${x}px ${y}px, black 45%, transparent 100%)`;
+      const grad = `radial-gradient(circle 240px at ${x}px ${y}px, black 45%, rgba(0, 0, 0, 0.08) 100%)`;
       el.style.maskImage = grad;
       el.style.webkitMaskImage = grad;
       el.style.setProperty("--mouse-x", `${x}px`);
@@ -211,6 +212,7 @@ export default function App() {
         const relativeY = clientY - rect.top;
         maskX.set(relativeX);
         maskY.set(relativeY);
+        setHasInteracted(true);
       }
 
       const video = videoRef.current;
@@ -366,8 +368,8 @@ export default function App() {
                 ref={maskContainerRef}
                 style={{ 
                   opacity: 1,
-                  maskImage: `radial-gradient(circle 240px at var(--mouse-x, ${Math.round(initialCenter.x)}px) var(--mouse-y, ${Math.round(initialCenter.y)}px), black 45%, transparent 100%)`,
-                  WebkitMaskImage: `radial-gradient(circle 240px at var(--mouse-x, ${Math.round(initialCenter.x)}px) var(--mouse-y, ${Math.round(initialCenter.y)}px), black 45%, transparent 100%)`,
+                  maskImage: `radial-gradient(circle 240px at var(--mouse-x, ${Math.round(initialCenter.x)}px) var(--mouse-y, ${Math.round(initialCenter.y)}px), black 45%, rgba(0, 0, 0, 0.08) 100%)`,
+                  WebkitMaskImage: `radial-gradient(circle 240px at var(--mouse-x, ${Math.round(initialCenter.x)}px) var(--mouse-y, ${Math.round(initialCenter.y)}px), black 45%, rgba(0, 0, 0, 0.08) 100%)`,
                 }}
                 className="absolute inset-0 w-full h-full pointer-events-none"
               >
@@ -408,6 +410,45 @@ export default function App() {
                   <source src={`${import.meta.env.BASE_URL}untitled-design.mp4`} type="video/mp4" />
                 </video>
               </div>
+
+              {/* Subtle Breathing Halo Cue (Guides the user that light can be moved) */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{
+                  opacity: hasInteracted ? 0 : [0.15, 0.45, 0.15],
+                  scale: hasInteracted ? 0.9 : [0.95, 1.06, 0.95],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: hasInteracted ? 0 : Infinity,
+                  ease: "easeInOut",
+                }}
+                style={{
+                  left: maskXSpring,
+                  top: maskYSpring,
+                  transform: 'translate(-50%, -50%)',
+                }}
+                className="absolute w-72 h-72 rounded-full pointer-events-none bg-[radial-gradient(circle,rgba(251,191,36,0.18)_0%,rgba(251,191,36,0.05)_45%,transparent_70%)] blur-md"
+              />
+
+              {/* Floating Pill Affordance Cue */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{
+                  opacity: hasInteracted ? 0 : 1,
+                  y: hasInteracted ? 10 : 0,
+                }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                className="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-none z-20 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#030311]/70 border border-white/10 backdrop-blur-md shadow-2xl shadow-black/80"
+              >
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-300"></span>
+                </span>
+                <span className="font-sans text-[10px] tracking-[0.25em] text-white/80 font-light select-none">
+                  {isMobile ? 'DRAG TO ILLUMINATE' : 'HOVER TO ILLUMINATE'}
+                </span>
+              </motion.div>
             </motion.div>
           </motion.div>
         </div>
