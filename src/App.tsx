@@ -128,11 +128,16 @@ export default function App() {
       video.playbackRate = 0.8;
       video.play().catch(() => {});
     };
+    const handleEnded = () => {
+      video.currentTime = 0;
+      video.play().catch(() => {});
+    };
 
     video.addEventListener('loadedmetadata', setSpeed);
     video.addEventListener('play', setSpeed);
     video.addEventListener('canplay', tryPlay);
     video.addEventListener('loadeddata', tryPlay);
+    video.addEventListener('ended', handleEnded);
 
     if (video.readyState >= 1) {
       setSpeed();
@@ -141,7 +146,7 @@ export default function App() {
       tryPlay();
     }
 
-    // Intersection Observer to handle autoplay/pause when entering/leaving viewport
+    // Intersection Observer to handle continuous looping when in viewport
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -149,15 +154,11 @@ export default function App() {
           if (entry.isIntersecting) {
             video.muted = true;
             video.playbackRate = 0.8;
-            video.play()
-              .then(() => console.log("Video autoplayed via IntersectionObserver"))
-              .catch((err) => console.log("IntersectionObserver play blocked:", err));
-          } else {
-            video.pause();
+            video.play().catch(() => {});
           }
         });
       },
-      { threshold: 0.1 }
+      { threshold: 0.05 }
     );
     observer.observe(container);
 
@@ -166,6 +167,7 @@ export default function App() {
       video.removeEventListener('play', setSpeed);
       video.removeEventListener('canplay', tryPlay);
       video.removeEventListener('loadeddata', tryPlay);
+      video.removeEventListener('ended', handleEnded);
       observer.disconnect();
     };
   }, [introFinished]);
@@ -376,8 +378,13 @@ export default function App() {
                       el.setAttribute('playsinline', '');
                       el.setAttribute('webkit-playsinline', '');
                       el.setAttribute('autoplay', '');
+                      el.setAttribute('loop', '');
+                      el.setAttribute('controlslist', 'nodownload nofullscreen noremoteplayback');
+                      el.setAttribute('disablepictureinpicture', 'true');
+                      el.setAttribute('disableremoteplayback', 'true');
                       el.muted = true;
                       el.defaultMuted = true;
+                      el.loop = true;
                       // @ts-ignore
                       videoRef.current = el;
                       el.play().catch(() => {});
@@ -391,6 +398,12 @@ export default function App() {
                   autoPlay
                   loop
                   preload="auto"
+                  controls={false}
+                  disablePictureInPicture
+                  onEnded={(e) => {
+                    e.currentTarget.currentTime = 0;
+                    e.currentTarget.play().catch(() => {});
+                  }}
                 >
                   <source src={`${import.meta.env.BASE_URL}untitled-design.mp4`} type="video/mp4" />
                 </video>

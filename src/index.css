@@ -83,25 +83,35 @@ html, body {
   mask-image: radial-gradient(120px 180px at var(--mask-x, 50%) var(--mask-y, 50%), black 100%, transparent 100%);
 }
 
-/* Force hide browser-native media play overlays (Safari/Chrome autoplay blocks) */
-video::-webkit-media-controls {
-  display: none !important;
-  -webkit-appearance: none !important;
-}
-video::-webkit-media-controls-start-playback-button {
+/* Force hide all browser-native media play overlays, buttons, and controls */
+video::-webkit-media-controls,
+video::-webkit-media-controls-start-playback-button,
+video::-webkit-media-controls-play-button,
+video::-webkit-media-controls-overlay-play-button,
+video::-webkit-media-controls-panel,
+video::-webkit-media-controls-enclosure,
+video::-webkit-media-controls-overlay-enclosure,
+video::-webkit-media-controls-current-time-display,
+video::-webkit-media-controls-time-remaining-display,
+video::-webkit-media-controls-timeline,
+video::-webkit-media-controls-volume-control-container,
+video::-webkit-media-controls-mute-button,
+video::-webkit-media-controls-fullscreen-button,
+*::-webkit-media-controls-start-playback-button {
   display: none !important;
   -webkit-appearance: none !important;
   opacity: 0 !important;
+  visibility: hidden !important;
   width: 0 !important;
   height: 0 !important;
   pointer-events: none !important;
 }
-video::-webkit-media-controls-play-button {
-  display: none !important;
-  -webkit-appearance: none !important;
+
+video {
+  pointer-events: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -webkit-touch-callout: none !important;
 }
-video::-webkit-media-controls-panel {
-  display: none !important;
-  -webkit-appearance: none !important;
-}
+
 
