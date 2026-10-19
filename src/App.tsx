@@ -72,7 +72,7 @@ export default function App() {
     const updateMask = () => {
       const x = Math.round(maskXSpring.get());
       const y = Math.round(maskYSpring.get());
-      const grad = `radial-gradient(circle 200px at ${x}px ${y}px, black 40%, transparent 100%)`;
+      const grad = `radial-gradient(circle 240px at ${x}px ${y}px, black 45%, transparent 100%)`;
       el.style.maskImage = grad;
       el.style.webkitMaskImage = grad;
       el.style.setProperty("--mouse-x", `${x}px`);
@@ -123,10 +123,22 @@ export default function App() {
     const setSpeed = () => {
       video.playbackRate = 0.8;
     };
+    const tryPlay = () => {
+      video.muted = true;
+      video.playbackRate = 0.8;
+      video.play().catch(() => {});
+    };
+
     video.addEventListener('loadedmetadata', setSpeed);
     video.addEventListener('play', setSpeed);
+    video.addEventListener('canplay', tryPlay);
+    video.addEventListener('loadeddata', tryPlay);
+
     if (video.readyState >= 1) {
       setSpeed();
+    }
+    if (video.readyState >= 2) {
+      tryPlay();
     }
 
     // Intersection Observer to handle autoplay/pause when entering/leaving viewport
@@ -136,6 +148,7 @@ export default function App() {
           isIntersectingRef.current = entry.isIntersecting;
           if (entry.isIntersecting) {
             video.muted = true;
+            video.playbackRate = 0.8;
             video.play()
               .then(() => console.log("Video autoplayed via IntersectionObserver"))
               .catch((err) => console.log("IntersectionObserver play blocked:", err));
@@ -146,11 +159,13 @@ export default function App() {
       },
       { threshold: 0.1 }
     );
-    observer.observe(video);
+    observer.observe(container);
 
     return () => {
       video.removeEventListener('loadedmetadata', setSpeed);
       video.removeEventListener('play', setSpeed);
+      video.removeEventListener('canplay', tryPlay);
+      video.removeEventListener('loadeddata', tryPlay);
       observer.disconnect();
     };
   }, [introFinished]);
@@ -174,22 +189,18 @@ export default function App() {
     const container = containerRef.current;
     if (!container) return;
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const { clientX, clientY } = e;
-
-      // Update cursor coordinates
+    const updatePointer = (clientX: number, clientY: number) => {
       mouseX.set(clientX);
       mouseY.set(clientY);
 
-      if (isMobile) return;
-
       const { innerWidth, innerHeight } = window;
 
-      // Video Parallax (max ±12px)
-      const vX = ((clientX / innerWidth) - 0.5) * 24;
-      const vY = ((clientY / innerHeight) - 0.5) * 24;
-      videoParallaxX.set(vX);
-      videoParallaxY.set(vY);
+      if (!isMobile) {
+        const vX = ((clientX / innerWidth) - 0.5) * 24;
+        const vY = ((clientY / innerHeight) - 0.5) * 24;
+        videoParallaxX.set(vX);
+        videoParallaxY.set(vY);
+      }
 
       // Update relative mask coordinates on the media card container in Section 2
       if (mediaRef.current) {
@@ -198,24 +209,40 @@ export default function App() {
         const relativeY = clientY - rect.top;
         maskX.set(relativeX);
         maskY.set(relativeY);
+      }
 
-        // Autoplay recovery (forces play if browser pauses it off-screen)
-        const video = videoRef.current;
-        if (video && isIntersectingRef.current) {
-          if (video.readyState >= 1) {
-            video.playbackRate = 0.8;
-          }
-          if (video.paused) {
-            video.play().catch(() => {});
-          }
+      const video = videoRef.current;
+      if (video) {
+        if (video.readyState >= 1) {
+          video.playbackRate = 0.8;
+        }
+        if (video.paused) {
+          video.play().catch(() => {});
         }
       }
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      updatePointer(e.clientX, e.clientY);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches && e.touches[0]) {
+        updatePointer(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches && e.touches[0]) {
+        updatePointer(e.touches[0].clientX, e.touches[0].clientY);
+      }
+      handleInteraction();
     };
 
     // User interaction scroll/touch triggers to play the video (authorizes autoplay on modern browsers)
     const handleInteraction = () => {
       const video = videoRef.current;
-      if (video && isIntersectingRef.current) {
+      if (video) {
         if (video.readyState >= 1) {
           video.playbackRate = 0.8;
         }
@@ -228,9 +255,10 @@ export default function App() {
     };
 
     window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
     window.addEventListener('scroll', handleInteraction, { passive: true });
     window.addEventListener('wheel', handleInteraction, { passive: true });
-    window.addEventListener('touchstart', handleInteraction, { passive: true });
     window.addEventListener('pointerdown', handleInteraction);
     window.addEventListener('touchend', handleInteraction);
     window.addEventListener('click', handleInteraction);
@@ -239,9 +267,10 @@ export default function App() {
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('scroll', handleInteraction);
       window.removeEventListener('wheel', handleInteraction);
-      window.removeEventListener('touchstart', handleInteraction);
       window.removeEventListener('pointerdown', handleInteraction);
       window.removeEventListener('touchend', handleInteraction);
       window.removeEventListener('click', handleInteraction);
@@ -335,8 +364,8 @@ export default function App() {
                 ref={maskContainerRef}
                 style={{ 
                   opacity: 1,
-                  maskImage: `radial-gradient(circle 200px at var(--mouse-x, ${Math.round(initialCenter.x)}px) var(--mouse-y, ${Math.round(initialCenter.y)}px), black 40%, transparent 100%)`,
-                  WebkitMaskImage: `radial-gradient(circle 200px at var(--mouse-x, ${Math.round(initialCenter.x)}px) var(--mouse-y, ${Math.round(initialCenter.y)}px), black 40%, transparent 100%)`,
+                  maskImage: `radial-gradient(circle 240px at var(--mouse-x, ${Math.round(initialCenter.x)}px) var(--mouse-y, ${Math.round(initialCenter.y)}px), black 45%, transparent 100%)`,
+                  WebkitMaskImage: `radial-gradient(circle 240px at var(--mouse-x, ${Math.round(initialCenter.x)}px) var(--mouse-y, ${Math.round(initialCenter.y)}px), black 45%, transparent 100%)`,
                 }}
                 className="absolute inset-0 w-full h-full pointer-events-none"
               >
@@ -346,20 +375,25 @@ export default function App() {
                       el.setAttribute('muted', '');
                       el.setAttribute('playsinline', '');
                       el.setAttribute('webkit-playsinline', '');
+                      el.setAttribute('autoplay', '');
                       el.muted = true;
                       el.defaultMuted = true;
                       // @ts-ignore
                       videoRef.current = el;
+                      el.play().catch(() => {});
                     }
                   }}
-                  src="/untitled-design.mp4"
+                  src={`${import.meta.env.BASE_URL}untitled-design.mp4`}
                   className="w-full h-full object-cover pointer-events-none"
                   style={{ transform: 'translate3d(0,0,0)', willChange: 'transform' }}
                   muted
                   playsInline
+                  autoPlay
                   loop
                   preload="auto"
-                />
+                >
+                  <source src={`${import.meta.env.BASE_URL}untitled-design.mp4`} type="video/mp4" />
+                </video>
               </div>
             </motion.div>
           </motion.div>
