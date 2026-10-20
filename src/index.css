@@ -97,9 +97,12 @@ video::-webkit-media-controls-timeline,
 video::-webkit-media-controls-volume-control-container,
 video::-webkit-media-controls-mute-button,
 video::-webkit-media-controls-fullscreen-button,
-*::-webkit-media-controls-start-playback-button {
+*::-webkit-media-controls-start-playback-button,
+*::-webkit-media-controls-play-button,
+*::-webkit-media-controls-overlay-play-button {
   display: none !important;
   -webkit-appearance: none !important;
+  appearance: none !important;
   opacity: 0 !important;
   visibility: hidden !important;
   width: 0 !important;
@@ -112,6 +115,7 @@ video {
   user-select: none !important;
   -webkit-user-select: none !important;
   -webkit-touch-callout: none !important;
+  outline: none !important;
 }
 
 

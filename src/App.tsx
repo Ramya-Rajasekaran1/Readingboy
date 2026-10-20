@@ -133,12 +133,18 @@ export default function App() {
       video.currentTime = 0;
       video.play().catch(() => {});
     };
+    const handlePause = () => {
+      if (isIntersectingRef.current || document.visibilityState === 'visible') {
+        video.play().catch(() => {});
+      }
+    };
 
     video.addEventListener('loadedmetadata', setSpeed);
     video.addEventListener('play', setSpeed);
     video.addEventListener('canplay', tryPlay);
     video.addEventListener('loadeddata', tryPlay);
     video.addEventListener('ended', handleEnded);
+    video.addEventListener('pause', handlePause);
 
     if (video.readyState >= 1) {
       setSpeed();
@@ -169,6 +175,7 @@ export default function App() {
       video.removeEventListener('canplay', tryPlay);
       video.removeEventListener('loadeddata', tryPlay);
       video.removeEventListener('ended', handleEnded);
+      video.removeEventListener('pause', handlePause);
       observer.disconnect();
     };
   }, [introFinished]);
